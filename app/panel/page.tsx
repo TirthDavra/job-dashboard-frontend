@@ -26,7 +26,7 @@ export default function PanelIndexPage() {
       router.replace("/login");
       return;
     }
-    router.replace(`/panel/${user.role}`);
+    router.replace(`/${user.role}`);
   }, [hydrated, token, user, router]);
 
   return (

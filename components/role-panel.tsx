@@ -37,7 +37,7 @@ export function RolePanel({
       return;
     }
     if (user.role !== role) {
-      router.replace(`/panel/${user.role}`);
+      router.replace(`/${user.role}`);
     }
   }, [hydrated, token, user, role, router]);
 

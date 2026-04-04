@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { login, test } from "@/api/auth/auth.api";
+import { login } from "@/api/auth/auth.api";
 import type { LoginInput } from "@/api/auth/types";
 import { loginFormSchema } from "@/api/auth/schemas";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -56,15 +56,22 @@ export function LoginForm({
         },
       });
       const target = searchParams.get("from");
-      if (
-        target &&
-        !target.includes("..") &&
-        (target === "/panel" || target.startsWith("/panel/"))
-      ) {
-        router.replace(target);
-        return;
+      if (target && !target.includes("..")) {
+        const allowed =
+          target === "/panel" ||
+          target.startsWith("/panel/") ||
+          target === "/recruiter" ||
+          target.startsWith("/recruiter/") ||
+          target === "/candidate" ||
+          target.startsWith("/candidate/") ||
+          target === "/admin" ||
+          target.startsWith("/admin/");
+        if (allowed) {
+          router.replace(target);
+          return;
+        }
       }
-      router.replace(`/panel/${data.user.role}`);
+      router.replace(`/${data.user.role}`);
     } catch (err) {
       setRootError(
         getApiErrorMessage(err, "Could not sign you in. Try again.")

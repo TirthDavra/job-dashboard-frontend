@@ -10,9 +10,3 @@ export async function register(body: RegisterInput): Promise<RegisterResponse> {
   const { data } = await api.post<RegisterResponse>("/auth/register", body);
   return data;
 }
-
-
-export async function test() {
-  const response = await api.get("http://localhost:5000/health");
-  return response.data
-}
