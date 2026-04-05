@@ -1,6 +1,10 @@
 import { CandidateJobList } from "@/components/candidate-job-list";
+import { CandidateJobFilters } from "@/components/candidate-job-filters";
 import { getJobs } from "@/api/job/job.api";
+import { getMyAppliedJobIds } from "@/api/application/application.api";
 import { getApiErrorMessage } from "@/lib/api-error";
+
+export const dynamic = "force-dynamic";
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   const n = Number.parseInt(String(value ?? ""), 10);
@@ -8,7 +12,13 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 }
 
 type PageProps = {
-  searchParams: Promise<{ page?: string; limit?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    limit?: string;
+    q?: string;
+    jobType?: string;
+    location?: string;
+  }>;
 };
 
 export default async function CandidateJobListingPage({
@@ -21,13 +31,26 @@ export default async function CandidateJobListingPage({
     Math.max(1, parsePositiveInt(sp.limit, 12))
   );
 
+  const filters = {
+    q: sp.q ?? "",
+    jobType: sp.jobType ?? "",
+    location: sp.location ?? "",
+  };
+
   let jobs: Awaited<ReturnType<typeof getJobs>>["jobs"] = [];
   let total = 0;
   let totalPages = 0;
   let error: string | null = null;
+  let appliedJobIds: string[] = [];
 
   try {
-    const data = await getJobs({ page, limit });
+    const data = await getJobs({
+      page,
+      limit,
+      q: filters.q,
+      jobType: filters.jobType,
+      location: filters.location,
+    });
     jobs = data.jobs;
     total = data.total;
     totalPages = data.totalPages;
@@ -38,14 +61,29 @@ export default async function CandidateJobListingPage({
     );
   }
 
+  try {
+    const applied = await getMyAppliedJobIds();
+    appliedJobIds = applied.jobIds;
+  } catch {
+    appliedJobIds = [];
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
         <p className="text-sm text-muted-foreground">
-          Open roles from employers on the platform.
+          Open roles only. Search by keywords, narrow by job type and location.
         </p>
       </div>
+
+      <CandidateJobFilters
+        limit={limit}
+        defaultQ={filters.q}
+        defaultJobType={filters.jobType}
+        defaultLocation={filters.location}
+      />
+
       <CandidateJobList
         jobs={jobs}
         page={page}
@@ -53,6 +91,8 @@ export default async function CandidateJobListingPage({
         total={total}
         totalPages={totalPages}
         error={error}
+        filters={filters}
+        appliedJobIds={appliedJobIds}
       />
     </div>
   );

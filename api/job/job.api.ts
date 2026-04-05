@@ -10,11 +10,19 @@ export async function createJob(body: CreateJobPayload): Promise<CreateJobRespon
 export async function getJobs(params: {
   page?: number;
   limit?: number;
+  q?: string;
+  jobType?: string;
+  location?: string;
 }): Promise<JobsListResponse> {
   const { data } = await api.get<JobsListResponse>("/jobs", {
     params: {
       page: params.page ?? 1,
       limit: params.limit ?? 10,
+      ...(params.q?.trim() ? { q: params.q.trim() } : {}),
+      ...(params.jobType?.trim() ? { jobType: params.jobType.trim() } : {}),
+      ...(params.location?.trim()
+        ? { location: params.location.trim() }
+        : {}),
     },
   });
   return data;

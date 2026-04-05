@@ -10,12 +10,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { JobDto } from "@/api/job/types";
+import { JobApplyButton } from "@/components/job-apply-button";
 
-function listHref(page: number, limit: number) {
-  const q = new URLSearchParams();
-  q.set("page", String(page));
-  q.set("limit", String(limit));
-  return `/candidate?${q.toString()}`;
+export type JobListFilters = {
+  q: string;
+  jobType: string;
+  location: string;
+};
+
+function listHref(
+  page: number,
+  limit: number,
+  filters: JobListFilters
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (filters.q.trim()) params.set("q", filters.q.trim());
+  if (filters.jobType.trim()) params.set("jobType", filters.jobType.trim());
+  if (filters.location.trim()) {
+    params.set("location", filters.location.trim());
+  }
+  return `/candidate?${params.toString()}`;
 }
 
 function formatSalary(job: JobDto): string {
@@ -39,6 +55,8 @@ type Props = {
   total: number;
   totalPages: number;
   error: string | null;
+  filters: JobListFilters;
+  appliedJobIds: string[];
 };
 
 export function CandidateJobList({
@@ -48,9 +66,18 @@ export function CandidateJobList({
   total,
   totalPages,
   error,
+  filters,
+  appliedJobIds,
 }: Props) {
   const canPrev = page > 1;
   const canNext = totalPages > 0 && page < totalPages;
+
+  const hasActiveFilters =
+    filters.q.trim().length > 0 ||
+    filters.jobType.trim().length > 0 ||
+    filters.location.trim().length > 0;
+
+  const appliedSet = new Set(appliedJobIds);
 
   if (error) {
     return (
@@ -63,7 +90,9 @@ export function CandidateJobList({
   if (jobs.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No jobs posted yet. Check back later.
+        {hasActiveFilters
+          ? "No open jobs match your search or filters. Try changing them."
+          : "No open jobs right now. Check back later."}
       </p>
     );
   }
@@ -97,10 +126,17 @@ export function CandidateJobList({
                   </p>
                 ) : null}
               </CardContent>
-              <CardFooter className="text-xs text-muted-foreground">
-                {job.deadline
-                  ? `Apply by ${new Date(job.deadline).toLocaleDateString()}`
-                  : "No deadline"}
+              <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t text-xs text-muted-foreground">
+                <span>
+                  {job.deadline
+                    ? `Apply by ${new Date(job.deadline).toLocaleDateString()}`
+                    : "No deadline"}
+                </span>
+                <JobApplyButton
+                  jobId={job._id}
+                  isOpen={job.isOpen}
+                  alreadyApplied={appliedSet.has(job._id)}
+                />
               </CardFooter>
             </Card>
           </li>
@@ -116,7 +152,10 @@ export function CandidateJobList({
         <div className="flex items-center gap-2">
           {canPrev ? (
             <Button variant="outline" size="sm" asChild>
-              <Link href={listHref(page - 1, limit)} prefetch>
+              <Link
+                href={listHref(page - 1, limit, filters)}
+                prefetch
+              >
                 <ChevronLeft className="size-4" />
                 Previous
               </Link>
@@ -133,7 +172,10 @@ export function CandidateJobList({
           </span>
           {canNext ? (
             <Button variant="outline" size="sm" asChild>
-              <Link href={listHref(page + 1, limit)} prefetch>
+              <Link
+                href={listHref(page + 1, limit, filters)}
+                prefetch
+              >
                 Next
                 <ChevronRight className="size-4" />
               </Link>
