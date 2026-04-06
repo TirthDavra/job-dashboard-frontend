@@ -41,7 +41,10 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, token: null });
 
-        document.cookie = "token=; path=/; max-age=0";
+        if (typeof window !== "undefined") {
+          document.cookie =
+            "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
+        }
       },
     }),
     {

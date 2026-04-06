@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useCallback, useMemo, useState } from "react";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Table,
@@ -13,7 +19,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { recruiterJobsColumns } from "@/components/recruiter-jobs-columns";
+import { closeJob, deleteJob } from "@/api/job/job.api";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { toast } from "sonner";
 import type { JobDto } from "@/api/job/types";
 
 export type RecruiterJobsDataTableProps = {
@@ -40,7 +59,128 @@ export function RecruiterJobsDataTable({
   totalPages,
   error,
 }: RecruiterJobsDataTableProps) {
-  const columns = useMemo(() => recruiterJobsColumns, []);
+  const router = useRouter();
+  const [pendingJobIds, setPendingJobIds] = useState<string[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    jobId: string;
+    jobTitle: string;
+    type: "close" | "delete";
+  } | null>(null);
+
+  const setPending = (jobId: string, active: boolean) => {
+    setPendingJobIds((prev) =>
+      active ? [...prev, jobId] : prev.filter((id) => id !== jobId)
+    );
+  };
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setConfirmAction(null);
+    }
+    setDialogOpen(open);
+  }, []);
+
+  const openConfirmDialog = useCallback(
+    (job: JobDto, type: "close" | "delete") => {
+      setConfirmAction({
+        jobId: job._id,
+        jobTitle: job.title,
+        type,
+      });
+      setDialogOpen(true);
+    },
+    []
+  );
+
+  const handleConfirmDialog = useCallback(async () => {
+    if (!confirmAction) {
+      return;
+    }
+
+    const { jobId, type } = confirmAction;
+    setDialogOpen(false);
+    setPending(jobId, true);
+
+    try {
+      if (type === "close") {
+        await closeJob(jobId);
+        toast.success("Job closed successfully.");
+      } else {
+        await deleteJob(jobId);
+        toast.success("Job deleted successfully.");
+      }
+      router.refresh();
+    } catch (err) {
+      toast.error(
+        getApiErrorMessage(
+          err,
+          type === "close"
+            ? "Could not close job. Try again."
+            : "Could not delete job. Try again."
+        )
+      );
+    } finally {
+      setPending(jobId, false);
+      setConfirmAction(null);
+    }
+  }, [confirmAction, router]);
+
+  const handleCancelDialog = useCallback(() => {
+    setDialogOpen(false);
+    setConfirmAction(null);
+  }, []);
+
+  const actionColumn = useMemo<ColumnDef<JobDto>>(
+    () => ({
+      id: "row-actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const job = row.original;
+        const isPending = pendingJobIds.includes(job._id);
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/recruiter/jobs/${job._id}/applications`}>
+                Applications
+              </Link>
+            </Button>
+
+            {job.isOpen ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+                onClick={() => openConfirmDialog(job, "close")}
+              >
+                {isPending ? "Closing…" : "Close"}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled>
+                Closed
+              </Button>
+            )}
+
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={() => openConfirmDialog(job, "delete")}
+            >
+              {isPending ? "Working…" : "Delete"}
+            </Button>
+          </div>
+        );
+      },
+    }),
+    [pendingJobIds, openConfirmDialog]
+  );
+
+  const columns = useMemo(
+    () => [...recruiterJobsColumns, actionColumn],
+    [actionColumn]
+  );
 
   const table = useReactTable({
     data: jobs,
@@ -107,6 +247,34 @@ export function RecruiterJobsDataTable({
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "delete"
+                ? "Delete job"
+                : "Close job"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "delete"
+                ? "This action cannot be undone. The job will be removed permanently."
+                : "Candidates will no longer be able to apply after this job is closed."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDialog}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant={confirmAction?.type === "delete" ? "destructive" : "default"}
+              onClick={handleConfirmDialog}
+            >
+              {confirmAction?.type === "delete" ? "Delete" : "Close"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">

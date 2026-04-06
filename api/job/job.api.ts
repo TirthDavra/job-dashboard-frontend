@@ -1,6 +1,10 @@
 import { api } from "@/services/api";
 import type { CreateJobPayload } from "./schemas";
-import type { CreateJobResponse, JobsListResponse } from "./types";
+import type {
+  CreateJobResponse,
+  JobsListResponse,
+  JobActionResponse,
+} from "./types";
 
 export async function createJob(body: CreateJobPayload): Promise<CreateJobResponse> {
   const { data } = await api.post<CreateJobResponse>("/jobs/create-job", body);
@@ -38,5 +42,15 @@ export async function getRecruiterJobs(params: {
       limit: params.limit ?? 10,
     },
   });
+  return data;
+}
+
+export async function closeJob(jobId: string): Promise<JobActionResponse> {
+  const { data } = await api.patch<JobActionResponse>(`/jobs/${jobId}/close`);
+  return data;
+}
+
+export async function deleteJob(jobId: string): Promise<JobActionResponse> {
+  const { data } = await api.delete<JobActionResponse>(`/jobs/${jobId}`);
   return data;
 }

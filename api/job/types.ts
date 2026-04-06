@@ -27,3 +27,7 @@ export type JobsListResponse = {
   total: number;
   totalPages: number;
 };
+
+export type JobActionResponse = {
+  message: string;
+};

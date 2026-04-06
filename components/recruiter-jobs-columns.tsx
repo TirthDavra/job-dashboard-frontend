@@ -84,15 +84,4 @@ export const recruiterJobsColumns: ColumnDef<JobDto>[] = [
     header: "Posted",
     cell: ({ row }) => formatDate(row.original.createdAt),
   },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => (
-      <Button variant="outline" size="sm" asChild>
-        <Link href={`/recruiter/jobs/${row.original._id}/applications`}>
-          Applications
-        </Link>
-      </Button>
-    ),
-  },
 ];

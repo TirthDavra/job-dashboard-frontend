@@ -93,7 +93,11 @@ export function RoleDashboardShell({
 
   function handleLogout() {
     logout();
-    router.replace("/login");
+    if (typeof window !== "undefined") {
+      window.location.assign("/login");
+    } else {
+      router.replace("/login");
+    }
   }
 
   return (
