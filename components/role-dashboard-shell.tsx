@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   Briefcase,
-  FileText,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -39,11 +38,6 @@ const RECRUITER_NAV: NavItem[] = [
   { href: "/recruiter", label: "Dashboard", icon: LayoutDashboard },
   { href: "/recruiter/jobs", label: "Manage jobs", icon: Briefcase },
   { href: "/recruiter/new", label: "Add job", icon: Plus },
-  {
-    href: "/recruiter/jobs/sample/applications",
-    label: "Job applications",
-    icon: FileText,
-  },
 ];
 
 const CANDIDATE_NAV: NavItem[] = [

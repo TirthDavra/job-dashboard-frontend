@@ -155,6 +155,7 @@ export function CandidateJobList({
               <Link
                 href={listHref(page - 1, limit, filters)}
                 prefetch
+                scroll={false}
               >
                 <ChevronLeft className="size-4" />
                 Previous

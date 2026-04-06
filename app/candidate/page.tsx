@@ -6,18 +6,28 @@ import { getApiErrorMessage } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 
-function parsePositiveInt(value: string | undefined, fallback: number) {
-  const n = Number.parseInt(String(value ?? ""), 10);
+function param(v: string | string[] | undefined): string {
+  if (v == null) return "";
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" ? s : "";
+}
+
+function parsePositiveInt(
+  value: string | string[] | undefined,
+  fallback: number
+) {
+  const raw = param(value);
+  const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
 type PageProps = {
   searchParams: Promise<{
-    page?: string;
-    limit?: string;
-    q?: string;
-    jobType?: string;
-    location?: string;
+    page?: string | string[];
+    limit?: string | string[];
+    q?: string | string[];
+    jobType?: string | string[];
+    location?: string | string[];
   }>;
 };
 
@@ -32,9 +42,9 @@ export default async function CandidateJobListingPage({
   );
 
   const filters = {
-    q: sp.q ?? "",
-    jobType: sp.jobType ?? "",
-    location: sp.location ?? "",
+    q: param(sp.q),
+    jobType: param(sp.jobType),
+    location: param(sp.location),
   };
 
   let jobs: Awaited<ReturnType<typeof getJobs>>["jobs"] = [];
@@ -68,6 +78,14 @@ export default async function CandidateJobListingPage({
     appliedJobIds = [];
   }
 
+  const filtersKey = [
+    String(page),
+    String(limit),
+    filters.q,
+    filters.jobType,
+    filters.location,
+  ].join("\u001f");
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="space-y-1">
@@ -78,6 +96,7 @@ export default async function CandidateJobListingPage({
       </div>
 
       <CandidateJobFilters
+        key={filtersKey}
         limit={limit}
         defaultQ={filters.q}
         defaultJobType={filters.jobType}
